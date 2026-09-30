@@ -21,3 +21,8 @@ pr() {
   process_name=${process_name##*/}
   command pm2 restart "$process_name" "$@"
 }
+
+u() {
+  "$HOME/.local/bin/server-helper" update || return
+  . "$HOME/.local/share/server-helper/shell-integration.sh"
+}

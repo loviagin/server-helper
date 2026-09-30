@@ -9,6 +9,7 @@ source_line='[ -f "$HOME/.local/share/server-helper/shell-integration.sh" ] && .
 mkdir -p -- "$bin_dir" "$share_dir"
 install -m 755 -- "$source_dir/server-helper" "$bin_dir/server-helper"
 install -m 644 -- "$source_dir/shell-integration.sh" "$share_dir/shell-integration.sh"
+printf '%s\n' "$source_dir" > "$share_dir/source-path"
 
 for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   if [[ ! -f $rc ]] || ! grep -Fqx -- "$source_line" "$rc"; then

@@ -5,8 +5,26 @@ root=${SERVER_HELPER_WWW_DIR:-/var/www}
 state_dir=${SERVER_HELPER_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/server-helper}
 
 usage() {
-  printf 'Usage: server-helper {select|mark PATH}\n' >&2
+  printf 'Usage: server-helper {select|mark PATH|update}\n' >&2
   exit 2
+}
+
+update_all() {
+  local source_file="$HOME/.local/share/server-helper/source-path" source_dir
+  if [[ ! -r $source_file ]]; then
+    printf 'server-helper: installation source is unknown; run bash install.sh from the repository\n' >&2
+    return 1
+  fi
+  IFS= read -r source_dir < "$source_file"
+  if [[ ! -d $source_dir/.git || ! -f $source_dir/install.sh ]]; then
+    printf 'server-helper: Git checkout not found: %s\n' "$source_dir" >&2
+    return 1
+  fi
+
+  git -C "$source_dir" pull --ff-only
+  bash "$source_dir/install.sh"
+  sudo apt update
+  sudo apt upgrade -y
 }
 
 mark_site() {
@@ -104,5 +122,6 @@ select_site() {
 case ${1:-} in
   select) (( $# == 1 )) || usage; select_site ;;
   mark) (( $# == 2 )) || usage; mark_site "$2" ;;
+  update) (( $# == 1 )) || usage; update_all ;;
   *) usage ;;
 esac
