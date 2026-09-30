@@ -4,21 +4,18 @@
 
 ## Установка на сервере
 
-Скопируйте папку проекта с Mac на сервер (подставьте свой SSH-адрес):
+На сервере клонируйте репозиторий и запустите установщик:
 
 ```bash
-scp -r "/путь/к/server-helper" user@server:~/
-```
-
-Затем в терминале Ubuntu выполните:
-
-```bash
+git clone https://github.com/loviagin/server-helper.git ~/server-helper
 cd ~/server-helper
 bash install.sh
 source ~/.bashrc
 ```
 
 Если на сервере используется Zsh, выполните `source ~/.zshrc`. Установка действует только для текущего пользователя и не требует `sudo`.
+
+Для обновления выполните `cd ~/server-helper && git pull && bash install.sh`, затем переподключитесь по SSH или снова загрузите конфигурацию оболочки.
 
 ## Команды
 
