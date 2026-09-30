@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=${SERVER_HELPER_WWW_DIR:-/var/www}
+state_dir=${SERVER_HELPER_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/server-helper}
+
+usage() {
+  printf 'Usage: server-helper {select|mark PATH}\n' >&2
+  exit 2
+}
+
+mark_site() {
+  local path=$1 name
+  path=${path%/}
+  name=${path##*/}
+  if [[ ! -d $path || $path != "$root/$name" || $name == . || $name == .. ]]; then
+    printf 'server-helper: not a site directory: %s\n' "$path" >&2
+    return 1
+  fi
+  mkdir -p -- "$state_dir/recent"
+  touch -- "$state_dir/recent/$name"
+}
+
+select_site() {
+  local entry name stamp i j selected=0 top=0 key seq rows visible end
+  local -a sites=() times=()
+
+  if [[ ! -d $root ]]; then
+    printf 'server-helper: directory does not exist: %s\n' "$root" >&2
+    return 1
+  fi
+
+  while IFS= read -r -d '' entry; do
+    [[ -d $entry ]] || continue
+    name=${entry##*/}
+    stamp=0
+    if [[ -e $state_dir/recent/$name ]]; then
+      stamp=$(stat -c %Y -- "$state_dir/recent/$name" 2>/dev/null || stat -f %m -- "$state_dir/recent/$name")
+    fi
+    i=${#sites[@]}
+    while (( i > 0 )) && (( stamp > times[i-1] )); do
+      sites[i]=${sites[i-1]}
+      times[i]=${times[i-1]}
+      (( i -= 1 )) || true
+    done
+    sites[i]=$entry
+    times[i]=$stamp
+  done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -print0)
+
+  if (( ${#sites[@]} == 0 )); then
+    printf 'server-helper: no site directories in %s\n' "$root" >&2
+    return 1
+  fi
+  if [[ ! -r /dev/tty || ! -w /dev/tty ]]; then
+    printf 'server-helper: an interactive terminal is required\n' >&2
+    return 1
+  fi
+
+  rows=$(stty size < /dev/tty)
+  rows=${rows%% *}
+  [[ $rows =~ ^[0-9]+$ ]] || rows=24
+  visible=$(( rows - 5 ))
+  (( visible > 0 )) || visible=1
+
+  # The alternate screen keeps the previous terminal contents intact.
+  printf '\033[?1049h\033[?25l' > /dev/tty
+  trap 'printf "\033[?25h\033[?1049l" > /dev/tty' EXIT
+  while :; do
+    (( selected < top )) && top=$selected
+    (( selected >= top + visible )) && top=$(( selected - visible + 1 ))
+    end=$(( top + visible ))
+    (( end > ${#sites[@]} )) && end=${#sites[@]}
+    {
+      printf '\033[H\033[2JSelect a site in %s (%d total)\r\n\r\n' "$root" "${#sites[@]}"
+      for (( j=top; j<end; j++ )); do
+        if (( j == selected )); then
+          printf '\033[7m > %s \033[0m\r\n' "${sites[j]##*/}"
+        else
+          printf '   %s\r\n' "${sites[j]##*/}"
+        fi
+      done
+      printf '\r\n↑/↓ choose · Enter open · q/Esc cancel'
+    } > /dev/tty
+
+    IFS= read -rsn1 key < /dev/tty || return 1
+    case $key in
+      '') printf '%s\n' "${sites[selected]}"; return 0 ;;
+      q) return 1 ;;
+      $'\e')
+        seq=''
+        IFS= read -rsn2 -t 0.1 seq < /dev/tty || true
+        case $seq in
+          '[A') (( selected > 0 )) && (( selected -= 1 )) || true ;;
+          '[B') (( selected < ${#sites[@]} - 1 )) && (( selected += 1 )) || true ;;
+          '') return 1 ;;
+        esac
+        ;;
+      k) (( selected > 0 )) && (( selected -= 1 )) || true ;;
+      j) (( selected < ${#sites[@]} - 1 )) && (( selected += 1 )) || true ;;
+    esac
+  done
+}
+
+case ${1:-} in
+  select) (( $# == 1 )) || usage; select_site ;;
+  mark) (( $# == 2 )) || usage; mark_site "$2" ;;
+  *) usage ;;
+esac
