@@ -17,4 +17,4 @@ for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
   fi
 done
 
-printf 'Installed. Reconnect to the server, or run:\n  source ~/.bashrc\n'
+printf 'Installed. Open a new terminal, or run:\n  source ~/.bashrc  # Bash\n  source ~/.zshrc   # Zsh\n'

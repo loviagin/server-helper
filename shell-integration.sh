@@ -12,6 +12,14 @@ gp() {
   command git pull "$@"
 }
 
+acp() {
+  if [[ $# -ne 2 || $1 != -m || -z $2 ]]; then
+    printf 'Usage: acp -m "comment"\n' >&2
+    return 2
+  fi
+  command git add . && command git commit -m "$2" && command git push
+}
+
 nrb() {
   command npm run build "$@"
 }
