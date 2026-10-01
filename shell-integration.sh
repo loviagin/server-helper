@@ -16,10 +16,21 @@ nrb() {
   command npm run build "$@"
 }
 
+ni() {
+  command npm install "$@"
+}
+
 pr() {
   local process_name=${PWD%/}
   process_name=${process_name##*/}
   command pm2 restart "$process_name" "$@"
+}
+
+pibr() {
+  gp || return
+  ni || return
+  nrb || return
+  pr
 }
 
 u() {
