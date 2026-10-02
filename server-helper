@@ -40,8 +40,8 @@ mark_site() {
 }
 
 select_site() {
-  local entry name stamp i j selected=0 top=0 key seq rows visible end
-  local -a sites=() times=()
+  local entry name stamp i j selected=0 top=0 key seq rows visible end query=''
+  local -a sites=() times=() matches=()
 
   if [[ ! -d $root ]]; then
     printf 'server-helper: directory does not exist: %s\n' "$root" >&2
@@ -77,44 +77,71 @@ select_site() {
   rows=$(stty size < /dev/tty)
   rows=${rows%% *}
   [[ $rows =~ ^[0-9]+$ ]] || rows=24
-  visible=$(( rows - 5 ))
+  visible=$(( rows - 6 ))
   (( visible > 0 )) || visible=1
 
   # The alternate screen keeps the previous terminal contents intact.
+  shopt -s nocasematch
   printf '\033[?1049h\033[?25l' > /dev/tty
   trap 'printf "\033[?25h\033[?1049l" > /dev/tty' EXIT
   while :; do
+    matches=()
+    for (( i=0; i<${#sites[@]}; i++ )); do
+      name=${sites[i]##*/}
+      if [[ -z $query || $name == *"$query"* ]]; then
+        matches[${#matches[@]}]=$i
+      fi
+    done
+    if (( ${#matches[@]} == 0 )); then
+      selected=0
+      top=0
+    elif (( selected >= ${#matches[@]} )); then
+      selected=$(( ${#matches[@]} - 1 ))
+    fi
     (( selected < top )) && top=$selected
     (( selected >= top + visible )) && top=$(( selected - visible + 1 ))
     end=$(( top + visible ))
-    (( end > ${#sites[@]} )) && end=${#sites[@]}
+    (( end > ${#matches[@]} )) && end=${#matches[@]}
     {
-      printf '\033[H\033[2JSelect a site in %s (%d total)\r\n\r\n' "$root" "${#sites[@]}"
+      printf '\033[H\033[2JSelect a site in %s (%d total)\r\nSearch: %s (%d matches)\r\n\r\n' "$root" "${#sites[@]}" "$query" "${#matches[@]}"
+      if (( ${#matches[@]} == 0 )); then
+        printf '   No matching sites.\r\n'
+      fi
       for (( j=top; j<end; j++ )); do
         if (( j == selected )); then
-          printf '\033[7m > %s \033[0m\r\n' "${sites[j]##*/}"
+          printf '\033[7m > %s \033[0m\r\n' "${sites[matches[j]]##*/}"
         else
-          printf '   %s\r\n' "${sites[j]##*/}"
+          printf '   %s\r\n' "${sites[matches[j]]##*/}"
         fi
       done
-      printf '\r\n↑/↓ choose · Enter open · q/Esc cancel'
+      printf '\r\nType to search · Backspace erase · ↑/↓ choose · Enter open · Esc cancel'
     } > /dev/tty
 
     IFS= read -rsn1 key < /dev/tty || return 1
     case $key in
-      '') printf '%s\n' "${sites[selected]}"; return 0 ;;
-      q) return 1 ;;
+      '')
+        if (( ${#matches[@]} > 0 )); then
+          printf '%s\n' "${sites[matches[selected]]}"
+          return 0
+        fi
+        ;;
+      $'\x7f'|$'\b') query=${query%?}; selected=0; top=0 ;;
       $'\e')
         seq=''
-        IFS= read -rsn2 -t 0.1 seq < /dev/tty || true
+        IFS= read -rsn2 -t 1 seq < /dev/tty || true
         case $seq in
           '[A') (( selected > 0 )) && (( selected -= 1 )) || true ;;
-          '[B') (( selected < ${#sites[@]} - 1 )) && (( selected += 1 )) || true ;;
+          '[B') (( selected < ${#matches[@]} - 1 )) && (( selected += 1 )) || true ;;
           '') return 1 ;;
         esac
         ;;
-      k) (( selected > 0 )) && (( selected -= 1 )) || true ;;
-      j) (( selected < ${#sites[@]} - 1 )) && (( selected += 1 )) || true ;;
+      *)
+        if [[ $key == [[:print:]] ]]; then
+          query+=$key
+          selected=0
+          top=0
+        fi
+        ;;
     esac
   done
 }
