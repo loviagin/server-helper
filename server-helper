@@ -40,8 +40,8 @@ mark_site() {
 }
 
 select_site() {
-  local entry name stamp i j selected=0 top=0 key seq rows visible end query=''
-  local -a sites=() times=() matches=()
+  local entry name stamp i j rank selected=0 top=0 key seq rows visible end query=''
+  local -a sites=() times=() matches=() match_ranks=()
 
   if [[ ! -d $root ]]; then
     printf 'server-helper: directory does not exist: %s\n' "$root" >&2
@@ -86,10 +86,25 @@ select_site() {
   trap 'printf "\033[?25h\033[?1049l" > /dev/tty' EXIT
   while :; do
     matches=()
+    match_ranks=()
     for (( i=0; i<${#sites[@]}; i++ )); do
       name=${sites[i]##*/}
       if [[ -z $query || $name == *"$query"* ]]; then
-        matches[${#matches[@]}]=$i
+        rank=2
+        if [[ -n $query && $name == "$query" ]]; then
+          rank=0
+        elif [[ -n $query && $name == "$query"* ]]; then
+          rank=1
+        fi
+        # Preserve recency within each group of equally relevant matches.
+        j=${#matches[@]}
+        while (( j > 0 )) && (( rank < match_ranks[j-1] )); do
+          matches[j]=${matches[j-1]}
+          match_ranks[j]=${match_ranks[j-1]}
+          (( j -= 1 )) || true
+        done
+        matches[j]=$i
+        match_ranks[j]=$rank
       fi
     done
     if (( ${#matches[@]} == 0 )); then
