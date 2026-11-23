@@ -38,6 +38,7 @@ source ~/.zshrc
 - `ni` — выполняет `npm install` в текущем каталоге.
 - `nrb` — выполняет `npm run build` в текущем каталоге.
 - `pr` — выполняет `pm2 restart "$(basename "$PWD")"`. Например, в `/var/www/api.lovigin.com` перезапустит процесс `api.lovigin.com`.
+- `pl` — выполняет `pm2 logs "$(basename "$PWD")" --lines 200`. Например, в `/var/www/api.lovigin.com` покажет последние 200 строк логов процесса `api.lovigin.com` и продолжит вывод новых сообщений.
 - `pibr` — последовательно выполняет `gp`, `ni`, `nrb`, `pr` и останавливается при ошибке.
 - `u` — обновляет утилиту из Git и пакеты Ubuntu через APT.
 

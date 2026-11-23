@@ -34,6 +34,12 @@ pr() {
   command pm2 restart "$process_name" "$@"
 }
 
+pl() {
+  local process_name=${PWD%/}
+  process_name=${process_name##*/}
+  command pm2 logs "$process_name" --lines 200 "$@"
+}
+
 pibr() {
   gp || return
   ni || return
