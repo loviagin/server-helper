@@ -47,6 +47,29 @@ pibr() {
   pr
 }
 
+pbr() {
+  gp || return
+  nrb || return
+  pr
+}
+
+pibrmg() {
+  gp || return
+  ni || return
+  command npx prisma migrate deploy || return
+  command npx prisma generate || return
+  nrb || return
+  pr
+}
+
+pbrmg() {
+  gp || return
+  command npx prisma migrate deploy || return
+  command npx prisma generate || return
+  nrb || return
+  pr
+}
+
 u() {
   "$HOME/.local/bin/server-helper" update || return
   . "$HOME/.local/share/server-helper/shell-integration.sh"

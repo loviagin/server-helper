@@ -40,6 +40,11 @@ source ~/.zshrc
 - `pr` — выполняет `pm2 restart "$(basename "$PWD")"`. Например, в `/var/www/api.lovigin.com` перезапустит процесс `api.lovigin.com`.
 - `pl` — выполняет `pm2 logs "$(basename "$PWD")" --lines 200`. Например, в `/var/www/api.lovigin.com` покажет последние 200 строк логов процесса `api.lovigin.com` и продолжит вывод новых сообщений.
 - `pibr` — последовательно выполняет `gp`, `ni`, `nrb`, `pr` и останавливается при ошибке.
+- `pbr` — `git pull` → `npm run build` → `pm2 restart` с именем текущей папки.
+- `pibrmg` — `git pull` → `npm install` → `npx prisma migrate deploy` → `npx prisma generate` → `npm run build` → `pm2 restart` с именем текущей папки.
+- `pbrmg` — `git pull` → `npx prisma migrate deploy` → `npx prisma generate` → `npm run build` → `pm2 restart` с именем текущей папки.
 - `u` — обновляет утилиту из Git и пакеты Ubuntu через APT.
+
+Команды `pibr`, `pbr`, `pibrmg` и `pbrmg` выполняют шаги в текущем каталоге и останавливаются при первой ошибке.
 
 Порядок сайтов хранится в `~/.local/state/server-helper/recent` (или в `$XDG_STATE_HOME/server-helper/recent`). Для другого корневого каталога можно установить `SERVER_HELPER_WWW_DIR` перед запуском оболочки.
